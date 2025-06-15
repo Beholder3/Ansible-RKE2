@@ -2,7 +2,7 @@
   hosts: workers
   become: yes
   vars:
-    master_ip: 192.168.0.150
+    master_ip: 172.26.255.144
   tasks:
     - name: Pobieranie tokena z mastera
       delegate_to: master

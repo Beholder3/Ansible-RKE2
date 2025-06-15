@@ -10,9 +10,9 @@
     - name: Tworzenie pliku config.yaml dla mastera
       copy:
         content: |
-          advertise-address: 192.168.0.150
+          advertise-address: 172.26.255.144
           tls-san:
-            - 192.168.0.150
+            - 172.26.255.144
         dest: /etc/rancher/rke2/config.yaml
 
     - name: Pobieranie i instalacja serwera RKE2
@@ -62,4 +62,4 @@
       replace:
         path: ./kubeconfig.yaml
         regexp: '127.0.0.1'
-        replace: '192.168.0.150'
+        replace: '172.26.255.144'
