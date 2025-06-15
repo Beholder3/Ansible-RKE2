@@ -1,0 +1,8 @@
+- name: Zatrzymanie RKE2
+  hosts: all
+  become: yes
+  tasks:
+    - name: Zatrzymanie usługi RKE2
+      systemd:
+        name: "{{ rke2_service }}"
+        state: stopped

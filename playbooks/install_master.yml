@@ -1,0 +1,65 @@
+- name: Instalacja RKE2 na masterze
+  hosts: masters
+  become: yes
+  tasks:
+    - name: Tworzenie katalogu konfiguracyjnego RKE2
+      file:
+        path: /etc/rancher/rke2
+        state: directory
+
+    - name: Tworzenie pliku config.yaml dla mastera
+      copy:
+        content: |
+          advertise-address: 192.168.0.150
+          tls-san:
+            - 192.168.0.150
+        dest: /etc/rancher/rke2/config.yaml
+
+    - name: Pobieranie i instalacja serwera RKE2
+      shell: curl -sfL https://get.rke2.io | sh -
+
+    - name: Włączenie usługi serwera RKE2
+      systemd:
+        name: rke2-server
+        enabled: yes
+
+    - name: Uruchomienie usługi serwera RKE2
+      systemd:
+        name: rke2-server
+        state: started
+
+    - name: Czekaj na utworzenie pliku kubeconfig
+      wait_for:
+        path: /etc/rancher/rke2/rke2.yaml
+        state: present
+        timeout: 120
+
+- name: Pobieranie i modyfikacja kubeconfig
+  hosts: masters
+  become: yes
+  tasks:
+    - name: Zmiana uprawnień pliku kubeconfig
+      file:
+        path: /etc/rancher/rke2/rke2.yaml
+        mode: '0644'
+
+    - name: Pobieranie pliku kubeconfig
+      fetch:
+        src: /etc/rancher/rke2/rke2.yaml
+        dest: ./kubeconfig.yaml
+        flat: yes
+
+    - name: Przywrócenie uprawnień pliku kubeconfig
+      file:
+        path: /etc/rancher/rke2/rke2.yaml
+        mode: '0600'
+
+- name: Modyfikacja adresu serwera w kubeconfig
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Zamiana 127.0.0.1 na IP mastera
+      replace:
+        path: ./kubeconfig.yaml
+        regexp: '127.0.0.1'
+        replace: '192.168.0.150'

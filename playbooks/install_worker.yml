@@ -1,0 +1,41 @@
+- name: Instalacja RKE2 na workerze
+  hosts: workers
+  become: yes
+  vars:
+    master_ip: 192.168.0.150
+  tasks:
+    - name: Pobieranie tokena z mastera
+      delegate_to: master
+      become: yes
+      slurp:
+        src: /var/lib/rancher/rke2/server/node-token
+      register: token_file
+
+    - name: Ustawienie faktu z tokenem
+      set_fact:
+        rke2_token: "{{ token_file['content'] | b64decode }}"
+
+    - name: Pobieranie i instalacja agenta RKE2
+      shell: curl -sfL https://get.rke2.io | INSTALL_RKE2_VERSION=v1.31.7+rke2r1 INSTALL_RKE2_TYPE="agent" sh -
+
+    - name: Tworzenie katalogu konfiguracyjnego RKE2
+      file:
+        path: /etc/rancher/rke2
+        state: directory
+
+    - name: Tworzenie pliku config.yaml dla agenta
+      copy:
+        content: |
+          server: https://{{ master_ip }}:9345
+          token: {{ rke2_token }}
+        dest: /etc/rancher/rke2/config.yaml
+
+    - name: Włączenie usługi agenta RKE2
+      systemd:
+        name: rke2-agent
+        enabled: yes
+
+    - name: Uruchomienie usługi agenta RKE2
+      systemd:
+        name: rke2-agent
+        state: started
